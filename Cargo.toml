@@ -27,3 +27,4 @@ exclude = [
   "themis/client_ristretto",
   "token/perf-monitor", # TODO: Rework perf-monitor to use solana-program-test, avoiding the need to link directly with the BPF VM
 ]
+resolver = "2"
