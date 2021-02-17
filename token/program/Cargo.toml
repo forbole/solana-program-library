@@ -18,7 +18,10 @@ num-derive = "0.3"
 num-traits = "0.2"
 num_enum = "0.5.1"
 thiserror = "1.0"
-solana-program = { git = "https://github.com/forbole/solana", branch = "wasm" }
+solana-program = "1.5.6"
+
+[target.'cfg(target_arch = "wasm32")'.patch.crates-io]
+solana-program = { git = "https://github.com/forbole/solana", version= "1.6.0", branch = "wasm" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 solana-sdk = "1.5.6"
