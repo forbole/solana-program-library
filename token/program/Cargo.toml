@@ -21,7 +21,7 @@ thiserror = "1.0"
 solana-program = { git = "https://github.com/forbole/solana", version= "1.6.0", branch = "wasm" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-solana-sdk = "1.5.6"
+solana-sdk = { git = "https://github.com/forbole/solana", version= "1.6.0", branch = "wasm" }
 
 [lib]
 crate-type = ["cdylib", "lib"]
