@@ -84,9 +84,9 @@ checksum = "eab1c04a571841102f5345a8fc0f6bb3d31c315dec879b5c6e42e40ce7ffa34e"
 
 [[package]]
 name = "assert_matches"
-version = "1.4.0"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "695579f0f2520f3774bb40461e5adb066459d4e0af4d59d20175484fb8e9edf1"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
 name = "async-trait"
@@ -244,7 +244,7 @@ version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b13fa9bf62be34702e5ee4526aff22530ae22fe34a0c4290d30d5e4e782e6"
 dependencies = [
- "borsh-derive",
+ "borsh-derive 0.7.2",
 ]
 
 [[package]]
@@ -253,8 +253,21 @@ version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6aaa45f8eec26e4bf71e7e5492cf53a91591af8f871f422d550e7cc43f6b927"
 dependencies = [
- "borsh-derive-internal",
- "borsh-schema-derive-internal",
+ "borsh-derive-internal 0.7.2",
+ "borsh-schema-derive-internal 0.7.2",
+ "proc-macro2 1.0.24",
+ "syn 1.0.58",
+]
+
+[[package]]
+name = "borsh-derive"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b637a47728b78a78cd7f4b85bf06d71ef4221840e059a38f048be2422bf673b2"
+dependencies = [
+ "borsh-derive-internal 0.8.1",
+ "borsh-schema-derive-internal 0.8.1",
+ "proc-macro-crate",
  "proc-macro2 1.0.24",
  "syn 1.0.58",
 ]
@@ -271,10 +284,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "borsh-derive-internal"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d813fa25eb0bed78c36492cff4415f38c760d6de833d255ba9095bd8ebb7d725"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.8",
+ "syn 1.0.58",
+]
+
+[[package]]
 name = "borsh-schema-derive-internal"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85b38abfda570837b0949c2c7ebd31417e15607861c23eacb2f668c69f6f3bf7"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.8",
+ "syn 1.0.58",
+]
+
+[[package]]
+name = "borsh-schema-derive-internal"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcf78ee4a98c8cb9eba1bac3d3e2a1ea3d7673c719ce691e67b5cbafc472d3b7"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.8",
@@ -461,15 +496,6 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
-]
-
-[[package]]
-name = "clear_on_drop"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9cc5db465b294c3fa986d5bbb0f3017cd850bff6dd6c52f9ccff8b4d21b7b08"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -721,20 +747,6 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "2.1.0"
-source = "git+https://github.com/garious/curve25519-dalek?rev=60efef3553d6bf3d7f3b09b5f97acd54d72529ff#60efef3553d6bf3d7f3b09b5f97acd54d72529ff"
-dependencies = [
- "borsh",
- "byteorder",
- "digest 0.8.1",
- "rand_core 0.5.1",
- "serde",
- "subtle 2.2.3",
- "zeroize",
-]
-
-[[package]]
-name = "curve25519-dalek"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "434e1720189a637d44fe464f4df1e6eb900b4835255b14354497c78af37d9bb8"
@@ -886,22 +898,6 @@ name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
-
-[[package]]
-name = "elgamal_ristretto"
-version = "0.2.4"
-source = "git+https://github.com/garious/elgamal?rev=db1eef8e01b8a6e93d3bdc64ab2c1acb39cb64d6#db1eef8e01b8a6e93d3bdc64ab2c1acb39cb64d6"
-dependencies = [
- "bincode",
- "borsh",
- "clear_on_drop",
- "curve25519-dalek 2.1.0",
- "rand_core 0.5.1",
- "serde",
- "sha2 0.8.2",
- "solana-sdk",
- "zkp",
-]
 
 [[package]]
 name = "encode_unicode"
@@ -1734,11 +1730,11 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcf3805d4480bb5b86070dcfeb9e2cb2ebc148adb753c5cca5f884d1d65a42b2"
+checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -1794,18 +1790,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "merlin"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e261cf0f8b3c42ded9f7d2bb59dea03aa52bc8a1cbc7482f9fc3fd1229d3b42"
-dependencies = [
- "byteorder",
- "keccak",
- "rand_core 0.5.1",
- "zeroize",
 ]
 
 [[package]]
@@ -2846,9 +2830,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.120"
+version = "1.0.121"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "166b2349061381baf54a58e4b13c89369feb0ef2eaa57198899e2312aac30aab"
+checksum = "6159e3c76cab06f6bc466244d43b35e77e9500cd685da87620addadc2a4c40b1"
 dependencies = [
  "serde_derive",
 ]
@@ -2864,9 +2848,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.120"
+version = "1.0.121"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca2a8cb5805ce9e3b95435e3765b7b553cecc762d938d409434338386cb5775"
+checksum = "f3fcab8778dc651bc65cfab2e4eb64996f3c912b74002fb379c94517e1f27c46"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.8",
@@ -2875,9 +2859,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.61"
+version = "1.0.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fceb2595057b6891a4ee808f70054bd2d12f0e97f1cbb78689b59f676df325a"
+checksum = "ea1c6153794552ea7cf7cf63b1231a25de00ec90db326ba6264440fa08e31486"
 dependencies = [
  "itoa",
  "ryu",
@@ -2898,9 +2882,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.8.15"
+version = "0.8.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "971be8f6e4d4a47163b405a3df70d14359186f9ab0f3a3ec37df144ca1ce089f"
+checksum = "15654ed4ab61726bf918a39cb8d98a2e2995b002387807fa6ba58fdf7f59bb23"
 dependencies = [
  "dtoa",
  "linked-hash-map",
@@ -3140,9 +3124,9 @@ dependencies = [
 
 [[package]]
 name = "solana-cli-config"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c25b905a927080a4fb047484c57be17208159082a32b8aae97686f39e1a0558"
+checksum = "bad98059908fca4c635438ca45233baf42baff0f47c7286e7e4c48325bd9578b"
 dependencies = [
  "dirs-next",
  "lazy_static",
@@ -3247,9 +3231,9 @@ dependencies = [
 
 [[package]]
 name = "solana-frozen-abi"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a6f89a4b701e0a6dc3197895273b780d7967b7337105aac9a807f23ca1106c7"
+checksum = "dc44c8096d5847d8cf7f3af3cce565de554cb56371decf93b060633ca8588913"
 dependencies = [
  "bs58 0.3.1",
  "bv",
@@ -3267,9 +3251,9 @@ dependencies = [
 
 [[package]]
 name = "solana-frozen-abi-macro"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f004ee725b1310bc96e2f75ad6b867a47ac14af6d7cc68e27b3178355d12d95"
+checksum = "f905159beff1b53e4ba8b018a9d13d96ba164c3973bf3b9d587e730bcc14fc18"
 dependencies = [
  "lazy_static",
  "proc-macro2 1.0.24",
@@ -3280,9 +3264,9 @@ dependencies = [
 
 [[package]]
 name = "solana-logger"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ace944d99fc8a38278bbc144e97fd8a0f65033ba0fd77f6854b86b7a31e5402b"
+checksum = "d83a006d97da5514a4475141573383d3fcd71c729ff78494f96bb531cf734d21"
 dependencies = [
  "env_logger",
  "lazy_static",
@@ -3339,9 +3323,9 @@ dependencies = [
 
 [[package]]
 name = "solana-program"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23b36300dc29d14b37726613ed7d5fc000283350a56d5691b1e767ea79ea5e2"
+checksum = "c2007bf285617f8a783e96b20ccd2f8d813549090a5b520f22e5f65b3cd9b157"
 dependencies = [
  "bincode",
  "bs58 0.3.1",
@@ -3518,9 +3502,9 @@ dependencies = [
 
 [[package]]
 name = "solana-sdk-macro"
-version = "1.5.6"
+version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31b12629227630e582c7fb7060f91bc42f32ddfc50d2e610108f48a13baa8d79"
+checksum = "b8a6635f1798c8ff1b88bb0fad1d4693c011f36a73c9ae03f198203144edcabb"
 dependencies = [
  "bs58 0.3.1",
  "proc-macro2 1.0.24",
@@ -3718,7 +3702,7 @@ name = "spl-feature-proposal"
 version = "1.0.0"
 dependencies = [
  "borsh",
- "borsh-derive",
+ "borsh-derive 0.8.1",
  "futures 0.3.12",
  "solana-program",
  "solana-program-test",
@@ -3746,7 +3730,7 @@ name = "spl-math"
 version = "0.1.0"
 dependencies = [
  "borsh",
- "borsh-derive",
+ "borsh-derive 0.8.1",
  "num-derive",
  "num-traits",
  "proptest",
@@ -3835,23 +3819,6 @@ dependencies = [
  "solana-sdk",
  "spl-stake-pool",
  "spl-token 3.1.0",
-]
-
-[[package]]
-name = "spl-themis-ristretto"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "borsh",
- "curve25519-dalek 2.1.0",
- "elgamal_ristretto",
- "getrandom 0.1.16",
- "num-derive",
- "num-traits",
- "rand 0.7.3",
- "solana-program",
- "subtle 2.2.3",
- "thiserror",
 ]
 
 [[package]]
@@ -4954,19 +4921,6 @@ dependencies = [
  "quote 1.0.8",
  "syn 1.0.58",
  "synstructure",
-]
-
-[[package]]
-name = "zkp"
-version = "0.7.0"
-source = "git+https://github.com/garious/zkp?rev=ed9eba6de4214fe67466b662b0d8017c3645c3f8#ed9eba6de4214fe67466b662b0d8017c3645c3f8"
-dependencies = [
- "curve25519-dalek 2.1.0",
- "merlin",
- "rand 0.7.3",
- "serde",
- "serde_derive",
- "thiserror",
 ]
 
 [[package]]
