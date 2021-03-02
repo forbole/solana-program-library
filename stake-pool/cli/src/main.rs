@@ -53,6 +53,7 @@ struct Config {
     verbose: bool,
     owner: Box<dyn Signer>,
     fee_payer: Box<dyn Signer>,
+    dry_run: bool,
 }
 
 type Error = Box<dyn std::error::Error>;
@@ -394,7 +395,9 @@ fn command_vsa_remove(
 
     // Calculate amount of tokens to burn
     let stake_account = config.rpc_client.get_account(&stake)?;
-    let tokens_to_burn = stake_amount_to_pool_tokens(&pool_data, stake_account.lamports);
+    let tokens_to_burn = pool_data
+        .calc_pool_withdraw_amount(stake_account.lamports)
+        .unwrap();
 
     // Check balance and mint
     let account_data = config.rpc_client.get_account_data(&burn_from)?;
@@ -511,6 +514,9 @@ fn command_deposit(
     let stake_data = config.rpc_client.get_account_data(&stake)?;
     let stake_data: StakeState =
         deserialize(stake_data.as_slice()).or(Err("Invalid stake account data"))?;
+    if config.verbose {
+        println!("Depositing stake account {:?}", stake_data);
+    }
     let validator: Pubkey = match stake_data {
         StakeState::Stake(_, stake) => Ok(stake.delegation.voter_pubkey),
         _ => Err("Wrong stake account state, must be delegated to validator"),
@@ -529,7 +535,16 @@ fn command_deposit(
     // Calculate validator stake account address linked to the pool
     let (validator_stake_account, _) =
         PoolProcessor::find_stake_address_for_validator(&spl_stake_pool::id(), &validator, pool);
-    println!("Depositing into stake account {}", validator_stake_account);
+    let validator_stake_data = config
+        .rpc_client
+        .get_account_data(&validator_stake_account)?;
+    let validator_stake_data: StakeState =
+        deserialize(validator_stake_data.as_slice()).or(Err("Invalid stake account data"))?;
+    if config.verbose {
+        println!("Depositing into stake account {:?}", validator_stake_data);
+    } else {
+        println!("Depositing into stake account {}", validator_stake_account);
+    }
 
     let mut instructions: Vec<Instruction> = vec![];
     let mut signers = vec![config.fee_payer.as_ref(), config.owner.as_ref()];
@@ -617,6 +632,21 @@ fn command_list(config: &Config, pool: &Pubkey) -> CommandResult {
     let pool_data = config.rpc_client.get_account_data(&pool)?;
     let pool_data = StakePool::deserialize(pool_data.as_slice()).unwrap();
 
+    if config.verbose {
+        let validator_list = config
+            .rpc_client
+            .get_account_data(&pool_data.validator_stake_list)?;
+        let validator_stake_list_data =
+            ValidatorStakeList::deserialize(&validator_list.as_slice())?;
+        println!("Current validator list");
+        for validator in validator_stake_list_data.validators {
+            println!(
+                "Vote: {}\tBalance: {}\tEpoch: {}",
+                validator.validator_account, validator.balance, validator.last_update_epoch
+            );
+        }
+    }
+
     let pool_withdraw_authority: Pubkey = PoolProcessor::authority_id(
         &spl_stake_pool::id(),
         pool,
@@ -633,9 +663,16 @@ fn command_list(config: &Config, pool: &Pubkey) -> CommandResult {
 
     let mut total_balance: u64 = 0;
     for (pubkey, account) in accounts {
+        let stake_data: StakeState =
+            deserialize(account.data.as_slice()).or(Err("Invalid stake account data"))?;
         let balance = account.lamports;
         total_balance += balance;
-        println!("{}\t{} SOL", pubkey, lamports_to_sol(balance));
+        println!(
+            "Pubkey: {}\tVote: {}\t{} SOL",
+            pubkey,
+            stake_data.delegation().unwrap().voter_pubkey,
+            lamports_to_sol(balance)
+        );
     }
     println!("Total: {} SOL", lamports_to_sol(total_balance));
 
@@ -654,14 +691,19 @@ fn command_update(config: &Config, pool: &Pubkey) -> CommandResult {
 
     let epoch_info = config.rpc_client.get_epoch_info()?;
 
-    let accounts_to_update: Vec<&Pubkey> = validator_stake_list_data
+    let accounts_to_update: Vec<Pubkey> = validator_stake_list_data
         .validators
         .iter()
         .filter_map(|item| {
             if item.last_update_epoch >= epoch_info.epoch {
                 None
             } else {
-                Some(&item.validator_account)
+                let (stake_account, _) = PoolProcessor::find_stake_address_for_validator(
+                    &spl_stake_pool::id(),
+                    &item.validator_account,
+                    &pool,
+                );
+                Some(stake_account)
             }
         })
         .collect();
@@ -694,22 +736,6 @@ fn command_update(config: &Config, pool: &Pubkey) -> CommandResult {
         transaction.sign(&[config.fee_payer.as_ref()], recent_blockhash);
         Ok(Some(transaction))
     }
-}
-
-fn stake_amount_to_pool_tokens(pool_data: &StakePool, amount: u64) -> u64 {
-    (amount as u128)
-        .checked_mul(pool_data.pool_total as u128)
-        .unwrap()
-        .checked_div(pool_data.stake_total as u128)
-        .unwrap() as u64
-}
-
-fn pool_tokens_to_stake_amount(pool_data: &StakePool, tokens: u64) -> u64 {
-    (tokens as u128)
-        .checked_mul(pool_data.stake_total as u128)
-        .unwrap()
-        .checked_div(pool_data.pool_total as u128)
-        .unwrap() as u64
 }
 
 #[derive(PartialEq, Debug)]
@@ -819,7 +845,7 @@ fn command_withdraw(
     }
 
     // Convert pool tokens amount to lamports
-    let sol_withdraw_amount = pool_tokens_to_stake_amount(&pool_data, amount);
+    let sol_withdraw_amount = pool_data.calc_lamports_amount(amount).unwrap();
 
     // Get the list of accounts to withdraw from
     let withdraw_from: Vec<WithdrawAccount> =
@@ -829,8 +855,6 @@ fn command_withdraw(
     let mut instructions: Vec<Instruction> = vec![];
     let mut signers = vec![config.fee_payer.as_ref(), config.owner.as_ref()];
     let stake_receiver_account = Keypair::new(); // Will be added to signers if creating new account
-
-    let mut total_rent_free_balances: u64 = 0;
 
     instructions.push(
         // Approve spending token
@@ -847,12 +871,19 @@ fn command_withdraw(
     // Use separate mutable variable because withdraw might create a new account
     let mut stake_receiver: Option<Pubkey> = *stake_receiver_param;
 
+    let mut total_rent_free_balances = 0;
+
     // Go through prepared accounts and withdraw/claim them
     for withdraw_stake in withdraw_from {
+        let withdraw_amount = pool_data
+            .calc_pool_withdraw_amount(withdraw_stake.amount)
+            .unwrap()
+            + 1;
         println!(
-            "Withdrawing from account {}, amount {} SOL",
+            "Withdrawing from account {}, amount {} SOL, {} pool tokens",
             withdraw_stake.pubkey,
-            lamports_to_sol(withdraw_stake.amount)
+            lamports_to_sol(withdraw_stake.amount),
+            lamports_to_sol(withdraw_amount),
         );
 
         if stake_receiver.is_none() {
@@ -896,7 +927,7 @@ fn command_withdraw(
             &pool_data.pool_mint,
             &spl_token::id(),
             &stake_program_id(),
-            withdraw_stake.amount,
+            withdraw_amount,
         )?);
     }
 
@@ -1032,6 +1063,13 @@ fn main() {
                 .takes_value(false)
                 .global(true)
                 .help("Show additional information"),
+        )
+        .arg(
+            Arg::with_name("dry_run")
+                .long("dry-run")
+                .takes_value(false)
+                .global(true)
+                .help("Simluate transaction instead of executing"),
         )
         .arg(
             Arg::with_name("json_rpc_url")
@@ -1354,12 +1392,14 @@ fn main() {
             exit(1);
         });
         let verbose = matches.is_present("verbose");
+        let dry_run = matches.is_present("dry_run");
 
         Config {
             rpc_client: RpcClient::new_with_commitment(json_rpc_url, CommitmentConfig::confirmed()),
             verbose,
             owner,
             fee_payer,
+            dry_run,
         }
     };
 
@@ -1439,10 +1479,15 @@ fn main() {
     }
     .and_then(|transaction| {
         if let Some(transaction) = transaction {
-            let signature = config
-                .rpc_client
-                .send_and_confirm_transaction_with_spinner(&transaction)?;
-            println!("Signature: {}", signature);
+            if config.dry_run {
+                let result = config.rpc_client.simulate_transaction(&transaction)?;
+                println!("Simulate result: {:?}", result);
+            } else {
+                let signature = config
+                    .rpc_client
+                    .send_and_confirm_transaction_with_spinner(&transaction)?;
+                println!("Signature: {}", signature);
+            }
         }
         Ok(())
     })
